@@ -1,0 +1,20 @@
+# Environment variables
+.env
+.env.docker
+
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Testing
+.pytest_cache/
+
+# Logs
+*.log
+
+# Database
+*.db
