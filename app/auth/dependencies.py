@@ -1,3 +1,4 @@
+import uuid
 import jwt
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
@@ -25,13 +26,16 @@ async def get_current_user(
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
-        email = payload.get("sub")
-        if email is None:
+        user_id = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
-    except InvalidTokenError:
+
+        user_id = uuid.UUID(user_id)
+
+    except (InvalidTokenError, ValueError):
         raise credentials_exception
 
-    user = session.exec(select(User).where(User.email == email)).first()
+    user = session.exec(select(User).where(User.id == uuid.UUID(user_id))).first()
     if user is None:
         raise credentials_exception
     return user
