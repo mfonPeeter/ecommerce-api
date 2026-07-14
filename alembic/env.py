@@ -1,3 +1,6 @@
+# Import all models so SQLModel.metadata is populated for Alembic autogeneration
+import app.db.models
+
 from logging.config import fileConfig
 
 from sqlalchemy import pool, create_engine
@@ -6,7 +9,6 @@ from alembic import context
 
 from app.config import settings
 from sqlmodel import SQLModel
-from app.users.models import User
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -23,6 +25,8 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 target_metadata = SQLModel.metadata
+
+database_url = config.get_main_option("sqlalchemy.url") or settings.database_url
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -42,9 +46,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.database_url
     context.configure(
-        url=url,
+        url=database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -61,7 +64,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = create_engine(settings.database_url, poolclass=pool.NullPool)
+    connectable = create_engine(database_url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

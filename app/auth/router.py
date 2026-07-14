@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
 
 @router.post(
-    "/register/", response_model=AuthPublicResponse, status_code=status.HTTP_201_CREATED
+    "/register", response_model=AuthPublicResponse, status_code=status.HTTP_201_CREATED
 )
 async def register(payload: UserCreate, session: SessionDep):
     try:
