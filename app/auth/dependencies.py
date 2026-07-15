@@ -35,7 +35,7 @@ async def get_current_user(
     except (InvalidTokenError, ValueError):
         raise credentials_exception
 
-    user = session.exec(select(User).where(User.id == uuid.UUID(user_id))).first()
+    user = session.exec(select(User).where(User.id == user_id)).first()
     if user is None:
         raise credentials_exception
     return user
