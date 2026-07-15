@@ -21,6 +21,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
     "/register", response_model=AuthPublicResponse, status_code=status.HTTP_201_CREATED
 )
 async def register(payload: UserCreate, session: SessionDep):
+    """Register a new user account"""
     try:
         existing_user = session.exec(
             select(User).where(User.email == payload.email)
@@ -53,6 +54,7 @@ async def register(payload: UserCreate, session: SessionDep):
 async def login(
     payload: Annotated[OAuth2PasswordRequestForm, Depends()], session: SessionDep
 ):
+    """Login with email and password"""
     try:
         user = session.exec(
             select(User).where(User.email == payload.username)
