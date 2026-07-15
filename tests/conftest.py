@@ -13,8 +13,6 @@ from main import app
 from app.config import settings
 from app.database import get_session
 
-DEFAULT_PASSWORD = "qwertyasdf"
-
 
 @pytest.fixture(scope="session", autouse=True)
 def migrate_database():
