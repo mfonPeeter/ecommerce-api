@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from .conftest import DEFAULT_PASSWORD
+from tests.conftest import DEFAULT_PASSWORD
 
 
 def test_register_success(client: TestClient):
