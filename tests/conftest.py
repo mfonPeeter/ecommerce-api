@@ -12,6 +12,10 @@ from fastapi.testclient import TestClient
 from main import app
 from app.config import settings
 from app.database import get_session
+from app.users.models import User
+from app.auth.utils import get_password_hash
+
+DEFAULT_PASSWORD = "qwertyasdf"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -61,3 +65,33 @@ def client(session: Session):
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def seeded_user(session: Session) -> User:
+    """Creates a test user in the database. Returns the user object for tests that need it."""
+    user = User(
+        email="test@test.com",
+        first_name="Test",
+        last_name="Tester",
+        phone_no="0812273822",
+        password=get_password_hash(DEFAULT_PASSWORD),
+        role="customer",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user
+
+
+@pytest.fixture
+def auth_token(seeded_user, client: TestClient) -> str:
+    """Logs in the seeded user and returns the access token."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={"username": seeded_user.email, "password": DEFAULT_PASSWORD},
+    )
+    token: str = response.json()["access_token"]
+
+    return token
