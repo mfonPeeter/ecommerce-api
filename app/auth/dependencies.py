@@ -53,6 +53,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 async def require_vendor(current_user: CurrentUser) -> User:
     if current_user.role != UserRole.VENDOR:
+        logger.warning(f"Unauthorized vendor access attempt by user: {current_user.id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this resource",

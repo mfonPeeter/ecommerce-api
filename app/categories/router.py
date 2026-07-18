@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Annotated
 from datetime import datetime, timezone
@@ -15,6 +16,8 @@ from .models import Category
 from app.database import SessionDep
 from app.auth.dependencies import CurrentUser, CurrentVendor
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/category", tags=["Category"])
 
 
@@ -31,6 +34,7 @@ async def get_categories(
         query = query.where(Category.name.icontains(filters.search))
 
     categories = session.exec(query).all()
+    logger.info("Retrieved all categories")
     return categories
 
 
@@ -45,13 +49,17 @@ async def create_category(
         existing_category = session.exec(
             select(Category).where(Category.name == payload.name)
         ).one_or_none()
-    except MultipleResultsFound:
+    except MultipleResultsFound as e:
+        logger.exception(f"Data integrity error during category creation: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Data integrity error",
         )
 
     if existing_category:
+        logger.warning(
+            f"Category creation attempt with existing category: {payload.name}"
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Category already exists"
         )
@@ -61,6 +69,7 @@ async def create_category(
     session.commit()
     session.refresh(category)
 
+    logger.info(f"New category created: {category.id}")
     return category
 
 
@@ -74,6 +83,7 @@ async def update_category(
     """Update an exisitng category"""
     category_db = session.get(Category, category_id)
     if not category_db:
+        logger.warning(f"Retrieval attempt of a non existent category: {category_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Category does not exist"
         )
@@ -83,13 +93,17 @@ async def update_category(
             existing_category = session.exec(
                 select(Category).where(Category.name == payload.name)
             ).one_or_none()
-        except MultipleResultsFound:
+        except MultipleResultsFound as e:
+            logger.exception(f"Data integrity error during category update: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Data integrity error",
             )
 
         if existing_category:
+            logger.warning(
+                f"Category update attempt with existing category: {payload.name}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Category already exists"
             )
@@ -101,6 +115,7 @@ async def update_category(
     session.commit()
     session.refresh(category_db)
 
+    logger.info(f"Category {category_db.id} updated")
     return category_db
 
 
@@ -114,9 +129,11 @@ async def delete_category(
     category_db = session.get(Category, category_id)
 
     if not category_db:
+        logger.warning(f"Retrieval attempt of a non existent category: {category_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Category does not exist"
         )
 
+    logger.info(f"Category {category_db.id} deleted")
     session.delete(category_db)
     session.commit()
