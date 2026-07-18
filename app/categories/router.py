@@ -1,10 +1,16 @@
 import uuid
+from typing import Annotated
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 from sqlmodel import select
 from sqlalchemy.exc import MultipleResultsFound
 
-from .schemas import CategoryPublicResponse, CategoryCreate, CategoryUpdate
+from .schemas import (
+    CategoryPublicResponse,
+    CategoryCreate,
+    CategoryUpdate,
+    CategoryFilterParams,
+)
 from .models import Category
 from app.database import SessionDep
 from app.auth.dependencies import CurrentUser, CurrentVendor
@@ -13,9 +19,18 @@ router = APIRouter(prefix="/api/v1/category", tags=["Category"])
 
 
 @router.get("", response_model=list[CategoryPublicResponse])
-async def get_categories(_: CurrentUser, session: SessionDep):
+async def get_categories(
+    _: CurrentUser,
+    filters: Annotated[CategoryFilterParams, Query()],
+    session: SessionDep,
+):
     """Return all categories"""
-    categories = session.exec(select(Category)).all()
+    query = select(Category)
+
+    if filters.search:
+        query = query.where(Category.name.icontains(filters.search))
+
+    categories = session.exec(query).all()
     return categories
 
 

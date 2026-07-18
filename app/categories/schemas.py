@@ -20,3 +20,7 @@ class CategoryCreate(SQLModel):
 class CategoryUpdate(SQLModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, min_length=1)
+
+
+class CategoryFilterParams(SQLModel):
+    search: Optional[str] = Field(default=None, max_length=100)
