@@ -1,8 +1,11 @@
 import uuid
 from enum import Enum
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Optional, TYPE_CHECKING
+from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime, timezone
+
+if TYPE_CHECKING:
+    from app.products.models import Product
 
 
 class UserRole(str, Enum):
@@ -21,3 +24,5 @@ class User(SQLModel, table=True):
     role: UserRole = Field(default=UserRole.CUSTOMER)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    products: list["Product"] = Relationship(back_populates="vendor")
