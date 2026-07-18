@@ -13,6 +13,7 @@ from main import app
 from app.config import settings
 from app.database import get_session
 from app.users.models import User
+from app.categories.models import Category
 from app.auth.utils import get_password_hash
 
 DEFAULT_PASSWORD = "qwertyasdf"
@@ -33,7 +34,7 @@ def engine():
     return create_engine(settings.test_database_url)
 
 
-@pytest.fixture()
+@pytest.fixture
 def session(engine):
     with Session(engine) as session:
         yield session
@@ -55,7 +56,7 @@ def clean_database(session: Session):
     session.commit()
 
 
-@pytest.fixture()
+@pytest.fixture
 def client(session: Session):
     def get_session_override():
         return session
@@ -67,7 +68,7 @@ def client(session: Session):
     app.dependency_overrides.clear()
 
 
-@pytest.fixture()
+@pytest.fixture
 def seeded_user(session: Session) -> User:
     """Creates a test user in the database. Returns the user object for tests that need it."""
     user = User(
@@ -95,3 +96,45 @@ def auth_token(seeded_user, client: TestClient) -> str:
     token: str = response.json()["access_token"]
 
     return token
+
+
+@pytest.fixture
+def seeded_vendor(session: Session) -> User:
+    """Creates a test user with the role of vendor in the database. Returns the vendor user object for tests that need it."""
+    user = User(
+        email="vendor@test.com",
+        first_name="Test",
+        last_name="Tester",
+        phone_no="0812273822",
+        password=get_password_hash(DEFAULT_PASSWORD),
+        role="vendor",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user
+
+
+@pytest.fixture
+def vendor_auth_token(seeded_vendor, client: TestClient) -> str:
+    """Logs in the seeded user with a role of vendor and returns the access token."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={"username": seeded_vendor.email, "password": DEFAULT_PASSWORD},
+    )
+
+    token: str = response.json()["access_token"]
+
+    return token
+
+
+@pytest.fixture
+def seeded_category(session: Session) -> Category:
+    """Creates a test category in the database. Returns the category object for tests that need it."""
+    category = Category(name="Test Category", description="Test category description")
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+
+    return category

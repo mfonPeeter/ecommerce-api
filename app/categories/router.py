@@ -23,7 +23,6 @@ router = APIRouter(prefix="/api/v1/category", tags=["Category"])
 
 @router.get("", response_model=list[CategoryPublicResponse])
 async def get_categories(
-    _: CurrentUser,
     filters: Annotated[CategoryFilterParams, Query()],
     session: SessionDep,
 ):
