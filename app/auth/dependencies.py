@@ -9,7 +9,7 @@ from sqlmodel import select
 
 from app.config import settings
 from app.database import SessionDep
-from app.users.models import User
+from app.users.models import User, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +49,15 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def require_vendor(current_user: CurrentUser) -> User:
+    if current_user.role != UserRole.VENDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this resource",
+        )
+    return current_user
+
+
+CurrentVendor = Annotated[User, Depends(require_vendor)]

@@ -6,16 +6,7 @@ from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from app.users.models import User
-
-
-class Category(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    name: str = Field(max_length=100, unique=True)
-    description: str = Field(sa_type=Text)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-    products: list["Product"] = Relationship(back_populates="category")
+    from app.categories.models import Category
 
 
 class Product(SQLModel, table=True):
@@ -34,7 +25,7 @@ class Product(SQLModel, table=True):
     deleted_at: Optional[datetime] = Field(default=None)
 
     images: list["ProductImage"] = Relationship(back_populates="product")
-    category: Category | None = Relationship(back_populates="products")
+    category: Optional["Category"] = Relationship(back_populates="products")
     vendor: "User" = Relationship(back_populates="products")
 
 

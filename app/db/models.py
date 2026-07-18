@@ -5,4 +5,5 @@ This is used by Alembic and test fixtures that need access to the complete datab
 """
 
 from app.users.models import User
-from app.products.models import Category, Product, ProductImage
+from app.categories.models import Category
+from app.products.models import Product, ProductImage
