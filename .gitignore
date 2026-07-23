@@ -18,3 +18,6 @@ __pycache__/
 
 # Database
 *.db
+
+# Seed scripts
+*_seed.py

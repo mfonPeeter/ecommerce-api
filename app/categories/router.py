@@ -14,7 +14,7 @@ from .schemas import (
 )
 from .models import Category
 from app.database import SessionDep
-from app.auth.dependencies import CurrentUser, CurrentVendor
+from app.auth.dependencies import CurrentVendor
 
 logger = logging.getLogger(__name__)
 
