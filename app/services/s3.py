@@ -27,12 +27,14 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 def validate_image(file: UploadFile) -> None:
     """Validate file type and size before uploading to S3."""
     if file.content_type not in ALLOWED_MIME_TYPES:
+        logger.warning("File type is not allowed")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNGN and WebP images are allowed",
+            detail="Only JPEG, PNG and WebP images are allowed",
         )
 
     if file.size > MAX_FILE_SIZE:
+        logger.warning("File size exceeds 5MB")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File size must not exceed 5MB",
@@ -51,11 +53,13 @@ def upload_file_to_s3(file: UploadFile, vendor_id: str) -> tuple[str, str]:
             ExtraArgs={"ContentType": file.content_type},
         )
     except ClientError as e:
+        logger.exception(f"Failed to upload image to S3: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to upload image",
         )
 
+    logger.info(f"File {key} uploaded to S3")
     url = f"https://{settings.aws_bucket_name}.s3.{settings.aws_default_region}.amazonaws.com/{key}"
     return url, key
 
@@ -67,5 +71,6 @@ def delete_from_s3(key: str) -> None:
             Bucket=settings.aws_bucket_name,
             Key=key,
         )
+        logger.info(f"File {key} deleted from S3")
     except ClientError as e:
         logger.exception(f"Failed to delete file from S3: {key} - {e}")

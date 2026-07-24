@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 from fastapi import (
@@ -25,6 +26,8 @@ from .schemas import (
 from app.auth.dependencies import CurrentVendor
 from app.database import SessionDep
 from app.services.s3 import validate_image, upload_file_to_s3, delete_from_s3
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 
@@ -62,6 +65,7 @@ async def get_products(
     query = query.limit(filters.limit).offset(filters.offset)
     products = session.exec(query).all()
 
+    logger.debug("Retrieved all products")
     return ProductListResponse(
         products=products,
         pagination=PaginationMeta(
@@ -76,10 +80,12 @@ async def get_product(product_id: uuid.UUID, session: SessionDep):
     product = session.get(Product, product_id)
 
     if not product or product.deleted_at is not None:
+        logger.warning(f"Retrieval attempt of a non existent product: {product_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product does not exist"
         )
 
+    logger.info(f"Retrieved product {product.id}")
     return product
 
 
@@ -116,6 +122,7 @@ async def get_vendor_products(
     query = query.limit(filters.limit).offset(filters.offset)
     products = session.exec(query).all()
 
+    logger.debug(f"Retrieved all products for vendor {current_vendor.id}")
     return ProductListResponse(
         products=products,
         pagination=PaginationMeta(
@@ -149,6 +156,7 @@ async def get_deleted_products(
     query = query.limit(filters.limit).offset(filters.offset)
     products = session.exec(query).all()
 
+    logger.info(f"Retrieved all deleted products for vendor {current_vendor.id}")
     return ProductListResponse(
         products=products,
         pagination=PaginationMeta(
@@ -169,10 +177,12 @@ async def get_vendor_product(
     ).one_or_none()
 
     if not product or product.deleted_at is not None:
+        logger.warning(f"Retrieval attempt of a non existent product: {product_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product does not exist"
         )
 
+    logger.info(f"Retrieved product {product.id} for vendor {current_vendor.id}")
     return product
 
 
@@ -229,6 +239,9 @@ async def create_products(
         session.commit()
         session.refresh(product)
     except HTTPException:
+        logger.warning(
+            f"Product creation failed for vendor {current_vendor.id} - rolling back"
+        )
         # delete product from database
         session.delete(product)
         session.commit()
@@ -237,6 +250,7 @@ async def create_products(
             delete_from_s3(key)
         raise
 
+    logger.info(f"New product {product.id} created by vendor {current_vendor.id}")
     return product
 
 
@@ -262,6 +276,7 @@ async def update_product(
     ).one_or_none()
 
     if not product_db or product_db.deleted_at is not None:
+        logger.warning(f"Retrieval attempt of a non existent product: {product_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product does not exist"
         )
@@ -311,10 +326,14 @@ async def update_product(
             session.commit()
             session.refresh(product_db)
         except HTTPException:
+            logger.warning(
+                f"Product update failed for vendor {current_vendor.id} - rolling back"
+            )
             for key in uploaded_keys:
                 delete_from_s3(key)
             raise
 
+    logger.info(f"Product {product.id} updated by vendor {current_vendor.id}")
     return product_db
 
 
@@ -330,10 +349,12 @@ async def delete_product(
     ).one_or_none()
 
     if not product_db or product_db.deleted_at is not None:
+        logger.warning(f"Retrieval attempt of a non existent product: {product_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product does not exist"
         )
 
+    logger.info(f"Product {product_db.id} soft deleted by vendor {current_vendor.id}")
     product_db.deleted_at = datetime.now(timezone.utc)
     session.add(product_db)
     session.commit()
@@ -351,6 +372,9 @@ async def restore_deleted_product(
     ).one_or_none()
 
     if not product_db or product_db.deleted_at is None:
+        logger.warning(
+            f"Retrieval attempt of a non existent or non deleted product: {product_id}"
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product does not exist or is not deleted",
@@ -361,6 +385,7 @@ async def restore_deleted_product(
     session.commit()
     session.refresh(product_db)
 
+    logger.info(f"Product {product_db.id} restored by vendor {current_vendor.id}")
     return product_db
 
 
@@ -385,11 +410,15 @@ async def delete_product_image(
     ).one_or_none()
 
     if not product_image_db:
+        logger.warning(f"Retrieval attempt of a non existent product: {product_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product image does not exist"
         )
 
     delete_from_s3(product_image_db.key)
 
+    logger.info(
+        f"Product {product_image_db.product_id} image {product_image_db.id} deleted by vendor {current_vendor.id}"
+    )
     session.delete(product_image_db)
     session.commit()
