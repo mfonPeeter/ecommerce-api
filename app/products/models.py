@@ -35,6 +35,7 @@ class ProductImage(SQLModel, table=True):
     name: str = Field(max_length=255)
     url: str = Field(max_length=2048)
     size: int
+    key: str
     mime_type: str = Field(max_length=50)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
